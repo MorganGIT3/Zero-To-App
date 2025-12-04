@@ -1,30 +1,30 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { useGSAP } from '@gsap/react';
+import React, { useEffect, useRef, useState } from "react";
 import gsap from 'gsap';
-import { SplitText } from 'gsap/SplitText';
 import { motion } from 'framer-motion';
 import { useDramaticSound } from '@/hooks/useDramaticSound';
-import { useUserRecognition } from '@/hooks/useUserRecognition';
-import { ShinyButton } from './ShinyButton';
 import { supabase, getCurrentUser } from '@/lib/supabase';
+import { ShinyButton } from './ShinyButton';
 
-gsap.registerPlugin(SplitText, useGSAP);
+interface WelcomeOnboardingPageProps {
+  onContinue: () => void;
+}
 
-export default function LandingPageNew({ 
-  onLogin, 
-  onSignup, 
-  onGoToOnboarding 
-}: {
-  onLogin?: () => void;
-  onSignup?: () => void;
-  onGoToOnboarding?: () => void;
-}) {
+export function WelcomeOnboardingPage({ onContinue }: WelcomeOnboardingPageProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { playDramaticSound } = useDramaticSound();
-  const { isRecognized, userEmail, userFirstName, isLoading } = useUserRecognition();
+  const [userFirstName, setUserFirstName] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(true);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -111,53 +111,119 @@ export default function LandingPageNew({
     };
   }, []);
 
-  useGSAP(() => {
-    if (!titleRef.current) return;
+  useEffect(() => {
+    loadUserFirstName();
+  }, []);
 
-    document.fonts.ready.then(() => {
-      const split = new SplitText(titleRef.current!, {
-        type: 'lines',
-        wordsClass: 'lines',
-      });
+  const loadUserFirstName = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('full_name')
+          .eq('user_id', user.id)
+          .single();
 
-      gsap.set(split.lines, {
-        filter: 'blur(16px)',
-        yPercent: 30,
-        autoAlpha: 0,
-        scale: 1.06,
-        transformOrigin: '50% 100%',
-      });
+        if (profile?.full_name) {
+          const firstName = profile.full_name.split(' ')[0];
+          const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+          setUserFirstName(capitalizedFirstName);
+          return;
+        }
 
-      gsap.to(split.lines, {
-        filter: 'blur(0px)',
-        yPercent: 0,
-        autoAlpha: 1,
-        scale: 1,
-        duration: 0.9,
-        stagger: 0.15,
-        ease: 'power3.out',
-        delay: 0.5,
-      });
-    });
-  }, { dependencies: [] });
+        const emailFirstName = user.email?.split('@')[0].split('.')[0] || '';
+        const capitalizedEmailFirstName = emailFirstName.charAt(0).toUpperCase() + emailFirstName.slice(1).toLowerCase();
+        setUserFirstName(capitalizedEmailFirstName);
+      }
+    } catch (error) {
+      console.log('Erreur lors du chargement du prénom:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (!titleRef.current || !isMounted) return;
+
+    // Animation simple sans SplitText pour éviter les conflits avec React
+    // Utiliser useEffect au lieu de useGSAP pour éviter les conflits
+    const timer = setTimeout(() => {
+      if (!titleRef.current || !isMounted) return;
+      
+      gsap.fromTo(
+        titleRef.current,
+        {
+          filter: 'blur(16px)',
+          y: 30,
+          opacity: 0,
+          scale: 1.06,
+        },
+        {
+          filter: 'blur(0px)',
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.9,
+          ease: 'power3.out',
+          delay: 0.5,
+        }
+      );
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (titleRef.current && isMounted) {
+        gsap.killTweensOf(titleRef.current);
+      }
+    };
+  }, [isMounted]);
+
+  const handleContinue = async () => {
+    if (!isMounted) return;
+    playDramaticSound();
+    // Marquer l'onboarding comme complété
+    await markOnboardingComplete();
+    if (isMounted) {
+      onContinue();
+    }
+  };
+
+  const markOnboardingComplete = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        // Mettre à jour le profil utilisateur pour indiquer que l'onboarding est complété
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({ onboarding_completed: true })
+          .eq('user_id', user.id);
+        
+        if (error) {
+          console.error('Erreur lors de la mise à jour du profil:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du profil:', error);
+    }
+  };
 
   return (
-    <section className="minimal-root">
+    <section ref={sectionRef} className="welcome-onboarding-root" data-page="welcome-onboarding">
       <style>{`
 @import url('https://fonts.cdnfonts.com/css/hubot-sans');
 
-.minimal-root, .minimal-root * {
+.welcome-onboarding-root, .welcome-onboarding-root * {
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-.minimal-root {
+.welcome-onboarding-root {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  z-index: 1000;
   --bg: #0a0a0a;
   --fg: #fafafa;
   --muted: #a1a1aa;
@@ -186,19 +252,6 @@ export default function LandingPageNew({
   color: var(--muted);
   text-decoration: none;
 }
-.cta {
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 10px;
-  background: #111;
-  color: var(--fg);
-  border: 1px solid var(--border);
-  font-size: 13px;
-  line-height: 36px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.cta:hover { background: #0d0d0d; }
 
 /* hero center */
 .hero {
@@ -209,9 +262,11 @@ export default function LandingPageNew({
   text-align: center;
   pointer-events: none;
   z-index: 5;
+  padding: 0 24px;
 }
 .hero > div {
   pointer-events: auto;
+  max-width: 800px;
 }
 .kicker {
   font-size: 12px;
@@ -222,7 +277,7 @@ export default function LandingPageNew({
 }
 .title {
   font-weight: 600;
-  font-size: clamp(32px, 8vw, 88px);
+  font-size: clamp(32px, 8vw, 72px);
   line-height: 0.95;
   margin: 0;
   color: var(--fg);
@@ -238,75 +293,6 @@ export default function LandingPageNew({
   margin-top: 18px;
   font-size: clamp(14px, 2.2vw, 18px);
   color: var(--muted);
-}
-
-/* Welcome message */
-.welcome-message {
-  margin-top: 20px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  font-size: 13px;
-  color: var(--fg);
-}
-
-/* Buttons container */
-.buttons-container {
-  margin-top: 32px;
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 12px;
-  justify-content: center;
-  align-items: center;
-  pointer-events: auto;
-}
-.buttons-container .shiny-cta {
-  height: 36px;
-  padding: 0 20px;
-  font-size: 13px;
-  width: auto;
-  min-width: auto;
-}
-.button-secondary {
-  height: 36px;
-  padding: 0 20px;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--fg);
-  border: 1px solid var(--border);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-}
-.button-secondary:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Loading */
-.loading {
-  margin-top: 32px;
-  display: flex;
-  justify-content: center;
-}
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--border);
-  border-top-color: var(--fg);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 /* accent lines container */
@@ -408,16 +394,6 @@ export default function LandingPageNew({
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.content .heading {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--fg);
-}
-.content .desc {
-  font-size: 14px;
-  color: var(--muted);
-  max-width: 680px;
-}
       `}</style>
 
       {/* Header */}
@@ -444,24 +420,12 @@ export default function LandingPageNew({
 
       {/* Accent Lines */}
       <div className="accent-lines">
-        {[...Array(3)].map((_, i) => (
-          <motion.div 
-            key={`h-${i}`}
-            className="hline"
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={{ scaleX: 1, opacity: 1 }}
-            transition={{ duration: 1, delay: 0.5 + i * 0.1, ease: "easeOut" }}
-          />
-        ))}
-        {[...Array(3)].map((_, i) => (
-          <motion.div 
-            key={`v-${i}`}
-            className="vline"
-            initial={{ scaleY: 0, opacity: 0 }}
-            animate={{ scaleY: 1, opacity: 1 }}
-            transition={{ duration: 1, delay: 0.7 + i * 0.1, ease: "easeOut" }}
-          />
-        ))}
+        <div className="hline" />
+        <div className="hline" />
+        <div className="hline" />
+        <div className="vline" />
+        <div className="vline" />
+        <div className="vline" />
       </div>
 
       {/* Hero */}
@@ -473,12 +437,12 @@ export default function LandingPageNew({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
           >
-            Seulement réservé aux membres de l'accompagnement
+            Bienvenue
           </motion.div>
           <h1 ref={titleRef} className="title">
-            Connecte toi à <span className="gradient-text">ZeroToApp</span>
+            Bienvenue{userFirstName ? `, ${userFirstName}` : ''} !
             <br />
-            By TM
+            <span className="gradient-text">ZeroToApp</span>
           </h1>
           <motion.p 
             className="subtitle"
@@ -486,106 +450,20 @@ export default function LandingPageNew({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
           >
-            Crée, lance et vends ton application IA no‑code à des entreprises
+            Tu es maintenant prêt à créer, lancer et vendre ta première application IA no-code.
           </motion.p>
 
-          {/* Message de bienvenue pour utilisateur reconnu */}
-          {isRecognized && userEmail && (
-            <motion.div 
-              className="welcome-message"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.8, type: "spring", stiffness: 200 }}
-            >
-              <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>Bienvenue de retour{userFirstName ? `, ${userFirstName}` : ''} !</span>
-            </motion.div>
-          )}
-
-          {/* Boutons conditionnels */}
-          {!isLoading && (
-            <motion.div 
-              className="buttons-container"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.9, ease: "easeOut" }}
-            >
-              {isRecognized ? (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, x: -20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 1.0, type: "spring", stiffness: 200 }}
-                  >
-                    <ShinyButton 
-                      onClick={() => { 
-                        playDramaticSound(); 
-                        // Pour les utilisateurs reconnus, aller à la page de bienvenue (onboarding)
-                        onGoToOnboarding?.();
-                      }}
-                    >
-                      GO
-                    </ShinyButton>
-                  </motion.div>
-                  <motion.button 
-                    className="button-secondary"
-                    onClick={() => { 
-                      playDramaticSound(); 
-                      onSignup?.(); 
-                    }}
-                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 1.1, type: "spring", stiffness: 200 }}
-                  >
-                    S'inscrire avec un autre compte
-                  </motion.button>
-                </>
-              ) : (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, x: -20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 1.0, type: "spring", stiffness: 200 }}
-                  >
-                    <ShinyButton 
-                      onClick={() => { 
-                        playDramaticSound(); 
-                        onSignup?.(); 
-                      }}
-                    >
-                      Je m'inscris
-                    </ShinyButton>
-                  </motion.div>
-                  <motion.button 
-                    className="button-secondary"
-                    onClick={() => { 
-                      playDramaticSound(); 
-                      onLogin?.(); 
-                    }}
-                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 1.1, type: "spring", stiffness: 200 }}
-                  >
-                    Connection
-                  </motion.button>
-                </>
-              )}
-            </motion.div>
-          )}
-
-          {/* Loading state */}
-          {isLoading && (
-            <motion.div 
-              className="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="spinner" />
-            </motion.div>
-          )}
+          {/* Continue button */}
+          <motion.div 
+            style={{ marginTop: '48px', display: 'flex', justifyContent: 'center' }}
+            initial={{ opacity: 0, y: 30, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.9, type: "spring", stiffness: 200 }}
+          >
+            <ShinyButton onClick={handleContinue}>
+              Dashboard
+            </ShinyButton>
+          </motion.div>
         </div>
       </main>
 
@@ -608,3 +486,4 @@ export default function LandingPageNew({
     </section>
   );
 }
+

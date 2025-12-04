@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,22 +6,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
-import { signUpUser, signInUser, resetPassword } from "@/lib/supabase";
+import { signUpUser, signInUser, resetPassword, supabase, getCurrentUser } from "@/lib/supabase";
 import { useAuthSound } from "@/hooks/useAuthSound";
 import { useUserRecognition } from "@/hooks/useUserRecognition";
+import { ShinyButton } from "./ShinyButton";
+import "./auth-card.css";
 
 interface AuthModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAuthSuccess?: () => void;
+  onSignupSuccess?: () => void; // Callback spécifique pour l'inscription
+  defaultTab?: "login" | "signup";
 }
 
-export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps) {
+export function AuthModal({ open, onOpenChange, onAuthSuccess, onSignupSuccess, defaultTab = "login" }: AuthModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<"login" | "signup">(defaultTab);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ 
     email: "", 
@@ -32,6 +37,13 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
   const [resetEmail, setResetEmail] = useState("");
   const { playAuthSound } = useAuthSound();
   const { markUserAsLoggedIn } = useUserRecognition();
+
+  // Mettre à jour l'onglet actif quand defaultTab change
+  useEffect(() => {
+    if (open) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab, open]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +62,7 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
         console.log('Connexion réussie:', data.user);
         // Marquer l'utilisateur comme connecté pour la reconnaissance future
         markUserAsLoggedIn(data.user.email || loginData.email);
+        // Pour la connexion, toujours aller au dashboard (l'onboarding ne s'affiche que pour les nouveaux comptes)
         onAuthSuccess?.();
         onOpenChange(false);
       }
@@ -111,14 +124,16 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
           // Email confirmé, connexion automatique
           // Marquer l'utilisateur comme connecté pour la reconnaissance future
           markUserAsLoggedIn(data.user.email || signupData.email);
-          onAuthSuccess?.();
+          // Pour une nouvelle inscription, toujours rediriger vers l'onboarding
+          onSignupSuccess?.();
           onOpenChange(false);
         } else {
           // Email non confirmé, afficher message
           setError("Un email de confirmation a été envoyé. Vérifiez votre boîte de réception.");
           // Attendre un peu puis fermer le modal
           setTimeout(() => {
-            onAuthSuccess?.();
+            // Même si l'email n'est pas confirmé, on redirige vers l'onboarding pour les nouveaux comptes
+            onSignupSuccess?.();
             onOpenChange(false);
           }, 3000);
         }
@@ -168,24 +183,34 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 border-0 overflow-hidden rounded-3xl z-[200]">
-        <div className="relative w-full overflow-hidden rounded-3xl">
-          {/* Magnificent Blue Background with Animation */}
-          <div className="absolute inset-0 z-0">
-            <img
-              src="https://media.giphy.com/media/xJT7pzbviKNqTqF1Ps/giphy.gif"
-              alt="Tunnel animation"
-              className="w-full h-full object-cover opacity-60"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-purple-600/80 via-[#a78bfa]/90 to-black/95" />
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 via-[#a78bfa]/30 to-purple-600/40" />
-          </div>
-
+    <>
+      {/* SVG Filters for button effects */}
+      <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+        <defs>
+          <filter id="unopaq">
+            <feComponentTransfer>
+              <feFuncA type="discrete" tableValues="0 1"></feFuncA>
+            </feComponentTransfer>
+          </filter>
+          <filter id="unopaq2">
+            <feComponentTransfer>
+              <feFuncA type="discrete" tableValues="0 1"></feFuncA>
+            </feComponentTransfer>
+          </filter>
+          <filter id="unopaq3">
+            <feComponentTransfer>
+              <feFuncA type="discrete" tableValues="0 1"></feFuncA>
+            </feComponentTransfer>
+          </filter>
+        </defs>
+      </svg>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md p-6 border-0 overflow-hidden rounded-3xl z-[200] bg-transparent">
+        <div className="relative w-full">
           {/* Content */}
-          <div className="relative z-10 p-8 py-14">
-            <DialogHeader className="pb-6">
-              <DialogTitle className="text-2xl font-bold text-center text-white">
+          <div className="relative z-10">
+            <DialogHeader className="pb-6 text-center">
+              <DialogTitle className="text-2xl font-bold text-white">
                 Bienvenu dans <span className="text-[#a78bfa] drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]">ZeroToApp</span>
               </DialogTitle>
             </DialogHeader>
@@ -201,7 +226,7 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                   {success}
                 </div>
               )}
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "signup")} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/10 border-white/20">
                 <TabsTrigger 
                   value="login" 
@@ -220,14 +245,16 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
               </TabsList>
               
               <TabsContent value="login">
-                <Card className="border-0 shadow-none bg-transparent">
-                  <CardHeader className="px-0 pb-4">
-                    <CardTitle className="text-white text-xl font-semibold">Se connecter</CardTitle>
-                    <CardDescription className="text-white/70">
+                <div className="auth-card">
+                  <div className="card__border"></div>
+                  <div className="card_title__container">
+                    <h3 className="card_title">Se connecter</h3>
+                    <p className="card_paragraph">
                       Connectez-vous à votre compte pour accéder au dashboard
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="px-0">
+                    </p>
+                  </div>
+                  <hr className="line" />
+                  <div>
                     <form onSubmit={handleLogin} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="login-email" className="text-white">Email</Label>
@@ -271,15 +298,7 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                           </Button>
                         </div>
                       </div>
-                      <Button 
-                        type="submit" 
-                        disabled={isLoading}
-                        className="w-full bg-gradient-to-r from-purple-400 via-[#a78bfa] to-purple-300 hover:from-purple-500 hover:via-[#a78bfa] hover:to-purple-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-all duration-200 shadow-lg shadow-[#a78bfa]/50 drop-shadow-[0_0_10px_rgba(167,139,250,0.4)]" 
-                        data-testid="button-login-submit"
-                      >
-                        {isLoading ? "Connexion..." : "Se connecter"}
-                      </Button>
-                      <div className="text-center">
+                      <div className="text-center mt-4">
                         <button
                           type="button"
                           onClick={() => setShowForgotPassword(true)}
@@ -288,20 +307,27 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                           Mot de passe oublié ?
                         </button>
                       </div>
+                      <div className="mt-6">
+                        <ShinyButton 
+                          type="submit" 
+                          disabled={isLoading}
+                        >
+                          {isLoading ? "Connexion..." : "Se connecter"}
+                        </ShinyButton>
+                      </div>
                     </form>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </TabsContent>
               
               <TabsContent value="signup">
-                <Card className="border-0 shadow-none bg-transparent">
-                  <CardHeader className="px-0 pb-4">
-                    <CardTitle className="text-white text-xl font-semibold">Créer un compte</CardTitle>
-                    <CardDescription className="text-white/70">
-                      Commencez votre essai gratuit de 14 jours
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="px-0">
+                <div className="auth-card">
+                  <div className="card__border"></div>
+                  <div className="card_title__container">
+                    <h3 className="card_title">Créer un compte</h3>
+                  </div>
+                  <hr className="line" style={{ marginBottom: '0.5rem' }} />
+                  <div>
                     <form onSubmit={handleSignup} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="signup-name" className="text-white">Nom complet</Label>
@@ -355,43 +381,33 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                           required
                         />
                       </div>
-                      <Button 
-                        type="submit" 
-                        disabled={isLoading}
-                        className="w-full bg-gradient-to-r from-purple-400 via-[#a78bfa] to-purple-300 hover:from-purple-500 hover:via-[#a78bfa] hover:to-purple-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-all duration-200 shadow-lg shadow-[#a78bfa]/50 drop-shadow-[0_0_10px_rgba(167,139,250,0.4)]" 
-                        data-testid="button-signup-submit"
-                      >
-                        {isLoading ? "Création..." : "Créer mon compte"}
-                      </Button>
+                      <div className="mt-6">
+                        <ShinyButton 
+                          type="submit" 
+                          disabled={isLoading}
+                        >
+                          {isLoading ? "Inscription..." : "S'inscrire"}
+                        </ShinyButton>
+                      </div>
                     </form>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
             </div>
           </div>
         </div>
       </DialogContent>
+      </Dialog>
 
       {/* Modal de réinitialisation de mot de passe */}
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
-        <DialogContent className="sm:max-w-md p-0 border-0 overflow-hidden rounded-3xl z-[300]">
-          <div className="relative w-full overflow-hidden rounded-3xl">
-            {/* Background */}
-            <div className="absolute inset-0 z-0">
-              <img
-                src="https://media.giphy.com/media/xJT7pzbviKNqTqF1Ps/giphy.gif"
-                alt="Tunnel animation"
-                className="w-full h-full object-cover opacity-60"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-purple-600/80 via-[#a78bfa]/90 to-black/95" />
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 via-[#a78bfa]/30 to-purple-600/40" />
-            </div>
-
+        <DialogContent className="sm:max-w-md p-6 border-0 overflow-hidden rounded-3xl z-[300] bg-transparent">
+          <div className="relative w-full">
             {/* Content */}
-            <div className="relative z-10 p-8 py-14">
-              <DialogHeader className="pb-6">
-                <DialogTitle className="text-2xl font-bold text-center text-white">
+            <div className="relative z-10">
+              <DialogHeader className="pb-6 text-center">
+                <DialogTitle className="text-2xl font-bold text-white">
                   Réinitialiser le mot de passe
                 </DialogTitle>
               </DialogHeader>
@@ -408,14 +424,16 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                   </div>
                 )}
                 
-                <Card className="border-0 shadow-none bg-transparent">
-                  <CardHeader className="px-0 pb-4">
-                    <CardTitle className="text-white text-xl font-semibold">Email de réinitialisation</CardTitle>
-                    <CardDescription className="text-white/70">
+                <div className="auth-card">
+                  <div className="card__border"></div>
+                  <div className="card_title__container">
+                    <h3 className="card_title">Email de réinitialisation</h3>
+                    <p className="card_paragraph">
                       Entrez votre adresse email pour recevoir un lien de réinitialisation
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="px-0">
+                    </p>
+                  </div>
+                  <hr className="line" />
+                  <div>
                     <form onSubmit={handleForgotPassword} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="reset-email" className="text-white">Email</Label>
@@ -430,30 +448,31 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps)
                         />
                       </div>
                       <div className="flex gap-3">
-                        <Button 
+                        <button 
                           type="button"
-                          variant="outline"
                           onClick={() => setShowForgotPassword(false)}
-                          className="flex-1 border-white/20 text-white hover:bg-white/10 rounded-lg"
+                          className="flex-1 border border-white/20 text-white hover:bg-white/10 rounded-lg py-2.5 px-4 transition-all duration-200"
                         >
                           Annuler
-                        </Button>
-                        <Button 
-                          type="submit" 
-                          disabled={isLoading}
-                          className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-all duration-200 shadow-lg" 
-                        >
-                          {isLoading ? "Envoi..." : "Envoyer"}
-                        </Button>
+                        </button>
+                        <div className="button-container flex-1" style={{ display: 'flex', justifyContent: 'center' }}>
+                          <button 
+                            type="submit" 
+                            disabled={isLoading}
+                            className="button"
+                          >
+                            {isLoading ? "Envoi..." : "Envoyer"}
+                          </button>
+                        </div>
                       </div>
                     </form>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </Dialog>
+    </>
   );
 }

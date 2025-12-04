@@ -1,0 +1,335 @@
+/* Auth Card Design - From Uiverse.io by MuhammadHasann - Adapted */
+
+.auth-card {
+  --white: hsl(0, 0%, 100%);
+  --black: hsl(240, 15%, 9%);
+  --paragraph: hsl(0, 0%, 83%);
+  --line: hsl(240, 9%, 17%);
+  --primary: hsl(266, 92%, 58%);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  width: 100%;
+  background-color: hsla(240, 15%, 9%, 1);
+  background-image: radial-gradient(
+      at 88% 40%,
+      hsla(240, 15%, 9%, 1) 0px,
+      transparent 85%
+    ),
+    radial-gradient(at 49% 30%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 14% 26%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 0% 64%, hsla(263, 93%, 56%, 1) 0px, transparent 85%),
+    radial-gradient(at 41% 94%, hsla(284, 100%, 84%, 1) 0px, transparent 85%),
+    radial-gradient(at 100% 99%, hsla(306, 100%, 57%, 1) 0px, transparent 85%);
+
+  border-radius: 1rem;
+  box-shadow: 0px -16px 24px 0px rgba(255, 255, 255, 0.25) inset;
+}
+
+.auth-card .card__border {
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: -10;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  background-image: linear-gradient(
+    0deg,
+    hsl(0, 0%, 100%) -50%,
+    hsl(0, 0%, 40%) 100%
+  );
+  border-radius: 1rem;
+}
+
+.auth-card .card__border::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  transform-origin: center;
+  width: 200%;
+  height: 10rem;
+  background-image: linear-gradient(
+    0deg,
+    hsla(0, 0%, 100%, 0) 0%,
+    hsl(277, 95%, 60%) 40%,
+    hsl(277, 95%, 60%) 60%,
+    hsla(0, 0%, 40%, 0) 100%
+  );
+  animation: rotate 8s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.auth-card .card_title__container .card_title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 0.5rem;
+}
+
+.auth-card .card_title__container .card_paragraph {
+  margin-top: 0.25rem;
+  width: 100%;
+  font-size: 0.875rem;
+  color: var(--paragraph);
+}
+
+.auth-card .line {
+  width: 100%;
+  height: 0.1rem;
+  background-color: var(--line);
+  border: none;
+  margin: 1rem 0;
+}
+
+.auth-card .card__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.auth-card .card__list .card__list_item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auth-card .card__list .card__list_item .check {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 1rem;
+  height: 1rem;
+  background-color: var(--primary);
+  border-radius: 50%;
+}
+
+.auth-card .card__list .card__list_item .check .check_svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  fill: var(--black);
+}
+
+.auth-card .card__list .card__list_item .list_text {
+  font-size: 0.75rem;
+  color: var(--white);
+}
+
+/* Custom Button Design - Inspired by card background */
+.button-container {
+  position: relative;
+  margin: 1rem auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.auth-card .button-container .button,
+.button-container .button {
+  position: relative;
+  border: none !important;
+  outline: none !important;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  color: #fff !important;
+  width: 100%;
+  max-width: 220px;
+  height: 48px;
+  text-align: center;
+  background: linear-gradient(135deg, #a78bfa 0%, #ec4899 50%, #f59e0b 100%) !important;
+  background-color: #a78bfa !important;
+  border-radius: 16px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  padding: 0;
+  margin: 0;
+  transition: all 0.3s ease;
+  box-shadow: 0px 4px 15px rgba(167, 139, 250, 0.4);
+  overflow: hidden;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.auth-card .button-container .button::before,
+.button-container .button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.6), rgba(236, 72, 153, 0.6));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+  border-radius: 16px;
+}
+
+.auth-card .button-container .button:hover:not(:disabled)::before,
+.button-container .button:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.auth-card .button-container .button > *,
+.button-container .button > * {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-card .button-container .button:hover:not(:disabled),
+.button-container .button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 20px rgba(167, 139, 250, 0.5);
+}
+
+.auth-card .button-container .button:active:not(:disabled),
+.button-container .button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0px 2px 10px rgba(167, 139, 250, 0.4);
+}
+
+.auth-card .button-container .button:disabled,
+.button-container .button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-card label {
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.auth-card input[type="email"],
+.auth-card input[type="password"],
+.auth-card input[type="text"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: var(--white) !important;
+  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.auth-card input[type="email"]::placeholder,
+.auth-card input[type="password"]::placeholder,
+.auth-card input[type="text"]::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.auth-card input[type="email"]:focus,
+.auth-card input[type="password"]:focus,
+.auth-card input[type="text"]:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.auth-card .space-y-2 {
+  margin-bottom: 1rem;
+}
+
+.auth-card .space-y-4 {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-card .relative {
+  position: relative;
+}
+
+.auth-card button[type="button"]:not(.button) {
+  background: transparent;
+  border: none;
+  color: hsl(277, 95%, 60%);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.auth-card button[type="button"]:not(.button):hover {
+  color: hsl(277, 95%, 70%);
+}
+
+.auth-card .relative button[type="button"] {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.auth-card .relative button[type="button"]:hover {
+  color: rgba(255, 255, 255, 1);
+  background: transparent;
+}
+
+/* Tabs styling to match the card design */
+[role="tablist"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 0.5rem;
+}
+
+[role="tab"] {
+  color: rgba(255, 255, 255, 0.7) !important;
+  transition: all 0.2s ease;
+}
+
+[role="tab"][data-state="active"] {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: var(--white) !important;
+}
+
+/* Error and success messages styling */
+.bg-red-500\/20,
+.bg-green-500\/20 {
+  border-radius: 0.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.bg-red-500\/20 {
+  background-color: rgba(239, 68, 68, 0.2) !important;
+  border: 1px solid rgba(239, 68, 68, 0.5) !important;
+}
+
+.bg-green-500\/20 {
+  background-color: rgba(34, 197, 94, 0.2) !important;
+  border: 1px solid rgba(34, 197, 94, 0.5) !important;
+}
+

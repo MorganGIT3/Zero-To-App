@@ -8,18 +8,33 @@ import { useClickSound } from '@/hooks/useClickSound';
 
 interface LandingPageProps {
   onLogin?: () => void;
+  onSignup?: () => void;
+  onGoToWelcomeOnboarding?: () => void;
 }
 
-export function LandingPage({ onLogin }: LandingPageProps) {
+export function LandingPage({ onLogin, onSignup, onGoToWelcomeOnboarding }: LandingPageProps) {
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<"login" | "signup">("login");
   const [otpModalOpen, setOtpModalOpen] = useState(false);
   const playClick = useClickSound(0.3);
 
   const handleAuthSuccess = () => {
     // Fermer immédiatement le modal
     setAuthModalOpen(false);
-    // Appeler directement onLogin pour aller à l'onboarding
+    // Pour la connexion, aller directement au dashboard (vérification de l'onboarding dans App.tsx)
     onLogin?.();
+  };
+
+  const handleSignupSuccess = () => {
+    // Fermer immédiatement le modal
+    setAuthModalOpen(false);
+    // Pour l'inscription, aller à l'onboarding
+    onSignup?.();
+  };
+
+  const handleOpenAuthModal = (tab: "login" | "signup") => {
+    setAuthModalTab(tab);
+    setAuthModalOpen(true);
   };
 
 
@@ -52,9 +67,9 @@ export function LandingPage({ onLogin }: LandingPageProps) {
       {/* New Landing Page Content */}
       <div className="relative z-20">
         <LandingPageNew 
-          onLogin={() => setAuthModalOpen(true)}
-          onSignup={() => setAuthModalOpen(true)}
-          onGoToOnboarding={handleAuthSuccess}
+          onLogin={() => handleOpenAuthModal("login")}
+          onSignup={() => handleOpenAuthModal("signup")}
+          onGoToOnboarding={onGoToWelcomeOnboarding || handleAuthSuccess}
         />
       </div>
 
@@ -63,6 +78,8 @@ export function LandingPage({ onLogin }: LandingPageProps) {
         open={authModalOpen} 
         onOpenChange={setAuthModalOpen}
         onAuthSuccess={handleAuthSuccess}
+        onSignupSuccess={handleSignupSuccess}
+        defaultTab={authModalTab}
       />
       
       {/* OTP Modal */}

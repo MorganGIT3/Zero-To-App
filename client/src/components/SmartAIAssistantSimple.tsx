@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, BrainCog, SendIcon, Sparkles, LoaderIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ShinyButton } from "./ShinyButton";
 
 // ⚠️ CONFIGURATION - Clé OpenAI via variable d'environnement
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || ""; // 🔒 Clé sécurisée
@@ -299,9 +300,9 @@ export function SmartAIAssistantSimple() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col w-full items-center justify-center bg-transparent text-white p-6 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col w-full items-center justify-center bg-transparent text-white p-6 relative overflow-hidden" style={{ zIndex: 10, isolation: 'isolate' }}>
       {/* Effets de fond animés */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden">
+      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse delay-700" />
         <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full mix-blend-normal filter blur-[96px] animate-pulse delay-1000" />
@@ -309,7 +310,7 @@ export function SmartAIAssistantSimple() {
 
 
       {/* Contenu principal */}
-      <div className="w-full max-w-4xl mx-auto relative z-10">
+      <div className="w-full max-w-4xl mx-auto relative" style={{ zIndex: 10 }}>
         <motion.div 
           className="space-y-8"
           initial={{ opacity: 0, y: 20 }}
@@ -325,7 +326,7 @@ export function SmartAIAssistantSimple() {
                 transition={{ delay: 0.2, duration: 0.5 }}
                 className="inline-block"
               >
-                <h1 className="text-4xl font-medium tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white/90 to-white/40 pb-1">
+                <h1 className="text-2xl font-medium tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white/90 to-white/40 pb-1">
                   Smart AI Assistant
                 </h1>
                 <motion.div 
@@ -359,7 +360,7 @@ export function SmartAIAssistantSimple() {
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 backdrop-blur-xl ${
                       message.sender === 'user'
-                        ? 'bg-blue-500/20 border border-blue-400/30 text-white'
+                        ? 'bg-[#a78bfa]/20 border border-[#a78bfa]/30 text-white'
                         : 'bg-white/[0.02] border border-white/[0.05] text-gray-100'
                     }`}
                   >
@@ -410,18 +411,13 @@ export function SmartAIAssistantSimple() {
             </div>
 
             <div className="p-4 border-t border-white/[0.05] flex items-center justify-end gap-4">
-              <motion.button
+              <ShinyButton
                 type="button"
                 onClick={handleSubmit}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
                 disabled={isLoading || !input.trim()}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                  "flex items-center gap-2",
-                  input.trim()
-                    ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20"
-                    : "bg-white/[0.05] text-white/40"
+                  "px-4 py-2 text-sm flex items-center gap-2",
+                  !input.trim() && "opacity-50 cursor-not-allowed"
                 )}
               >
                 {isLoading ? (
@@ -430,7 +426,7 @@ export function SmartAIAssistantSimple() {
                   <SendIcon className="w-4 h-4" />
                 )}
                 <span>Envoyer</span>
-              </motion.button>
+              </ShinyButton>
             </div>
           </motion.div>
         </motion.div>
@@ -446,8 +442,8 @@ export function SmartAIAssistantSimple() {
             exit={{ opacity: 0, y: 20 }}
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-7 rounded-full bg-blue-500/20 flex items-center justify-center text-center">
-                <Sparkles className="w-4 h-4 text-blue-400" />
+              <div className="w-8 h-7 rounded-full bg-[#a78bfa]/20 flex items-center justify-center text-center">
+                <Sparkles className="w-4 h-4 text-[#a78bfa]" />
               </div>
               <div className="flex items-center gap-2 text-sm text-white/70">
                 <span>L'IA réfléchit</span>
