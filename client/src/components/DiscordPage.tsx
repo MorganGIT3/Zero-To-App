@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import { ShinyButton } from './ShinyButton';
 
 // Logo Discord SVG
@@ -10,14 +11,85 @@ const DiscordLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
 );
 
 export function DiscordPage() {
+  const [showPopup, setShowPopup] = useState(true);
+
+  // Afficher la popup automatiquement au chargement
+  useEffect(() => {
+    setShowPopup(true);
+  }, []);
+
   const handleJoinDiscord = () => {
     // Remplacez cette URL par votre vrai lien d'invitation Discord
     const discordInviteUrl = "https://discord.gg/YOUR_INVITE_CODE";
     window.open(discordInviteUrl, "_blank", "noopener,noreferrer");
   };
 
+  const handleClosePopup = () => {
+    setShowPopup(false);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center relative">
+      {/* Popup de préparation */}
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay sombre */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={handleClosePopup}
+          />
+          
+          {/* Contenu de la popup */}
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="relative z-10 backdrop-blur-2xl bg-white/[0.02] border border-white/[0.05] rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Bouton fermer */}
+            <button
+              onClick={handleClosePopup}
+              className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
+              aria-label="Fermer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Icône */}
+            <div className="mb-4 flex justify-center">
+              <div className="w-16 h-16 backdrop-blur-2xl bg-white/[0.02] border border-white/[0.05] rounded-xl flex items-center justify-center shadow-lg shadow-[#a78bfa]/20">
+                <MessageCircle className="h-8 w-8 text-[#a78bfa]" />
+              </div>
+            </div>
+
+            {/* Message */}
+            <h2 className="text-xl font-semibold mb-3 text-white text-center">
+              Discord en préparation
+            </h2>
+            
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4 mb-4">
+              <p className="text-white/80 text-sm leading-relaxed text-center">
+                Le Discord est en préparation, il sera disponible dans peu de temps.
+              </p>
+            </div>
+
+            {/* Bouton */}
+            <div className="flex justify-center">
+              <ShinyButton
+                onClick={handleClosePopup}
+                className="px-6 py-2 text-sm"
+              >
+                Compris
+              </ShinyButton>
+            </div>
+          </motion.div>
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

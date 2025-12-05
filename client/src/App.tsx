@@ -101,24 +101,18 @@ function App() {
           .eq('user_id', user.id)
           .single();
 
-        if (profile) {
-          // Si le premier onboarding n'est pas complété, rediriger vers /first-onboarding
-          if (!profile.first_onboarding_completed) {
-            navigate('/first-onboarding');
-            return;
-          }
-          // Si le premier onboarding est complété mais pas le deuxième, rediriger vers /welcome-onboarding
-          if (profile.first_onboarding_completed && !profile.onboarding_completed) {
+        // Si pas de profil ou onboarding non complété, rediriger vers welcome-onboarding pour les nouveaux comptes
+        if (!profile || !profile.onboarding_completed) {
             navigate('/welcome-onboarding');
             return;
-          }
         }
       }
       // Sinon, aller au dashboard
       navigate('/dashboard');
     } catch (error) {
       console.error('Erreur lors de la vérification:', error);
-      navigate('/dashboard');
+      // En cas d'erreur, rediriger vers welcome-onboarding pour les nouveaux comptes
+      navigate('/welcome-onboarding');
     }
   };
 

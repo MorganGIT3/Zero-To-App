@@ -57,7 +57,7 @@ const Tooltip = ({ children, content }: { children: React.ReactNode; content: st
 const DockItem = ({ children, tooltip }: { children: React.ReactNode; tooltip: string }) => {
   return (
     <motion.div
-      whileHover={{ scale: 1.25, y: -10 }}
+      whileHover={{ scale: 1.22, y: -9 }}
       whileTap={{ scale: 0.9 }}
       transition={{ type: "spring", stiffness: 400, damping: 17 }}
       className="relative"
@@ -71,7 +71,7 @@ const DockItem = ({ children, tooltip }: { children: React.ReactNode; tooltip: s
 
 // Separator component
 const Separator = () => (
-  <div className="w-px h-8 bg-white/10 mx-1" />
+  <div className="w-px h-7 bg-white/10 mx-1" />
 );
 
 // Main dock component
@@ -86,13 +86,13 @@ const Dock = ({ children }: { children: React.ReactNode }) => {
           --muted: #a1a1aa;
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 12px 20px;
+          gap: 6px;
+          padding: 8px 16px;
           background: rgba(17, 17, 17, 0.8);
           backdrop-filter: blur(20px) saturate(180%);
           -webkit-backdrop-filter: blur(20px) saturate(180%);
           border: 1px solid var(--border);
-          border-radius: 24px;
+          border-radius: 20px;
           box-shadow: 
             0 8px 32px rgba(0, 0, 0, 0.4),
             0 0 0 1px rgba(255, 255, 255, 0.05) inset,
@@ -110,7 +110,7 @@ const Dock = ({ children }: { children: React.ReactNode }) => {
             rgba(139, 92, 246, 0.05) 50%,
             rgba(167, 139, 250, 0.1) 100%
           );
-          border-radius: 24px;
+          border-radius: 20px;
           opacity: 0;
           transition: opacity 0.3s ease;
           pointer-events: none;
@@ -180,7 +180,7 @@ export function IosDock({ currentView, onNavigate, onProfileClick, onLogout }: I
                   onNavigate(item.view);
                 }
               }}
-              className={`w-12 h-12 rounded-xl bg-transparent hover:bg-white/5 flex items-center justify-center transition-all duration-200 ${
+              className={`w-10 h-10 rounded-lg bg-transparent hover:bg-white/5 flex items-center justify-center transition-all duration-200 ${
                 currentView === item.view 
                   ? 'bg-white/10 border border-white/20 shadow-lg shadow-[#a78bfa]/20' 
                   : 'border border-transparent hover:border-white/10'
@@ -206,7 +206,7 @@ export function IosDock({ currentView, onNavigate, onProfileClick, onLogout }: I
               e.stopPropagation();
               onNavigate('/profile');
             }}
-            className="w-12 h-12 rounded-xl bg-transparent hover:bg-white/5 border border-transparent hover:border-white/10 flex items-center justify-center transition-all duration-200"
+            className="w-10 h-10 rounded-lg bg-transparent hover:bg-white/5 border border-transparent hover:border-white/10 flex items-center justify-center transition-all duration-200"
             aria-label="Profil"
           >
             <User className="w-5 h-5 text-white/70 hover:text-white transition-colors" />
@@ -221,7 +221,7 @@ export function IosDock({ currentView, onNavigate, onProfileClick, onLogout }: I
               e.stopPropagation();
               onLogout();
             }}
-            className="w-12 h-12 rounded-xl bg-transparent hover:bg-white/5 border border-transparent hover:border-white/10 flex items-center justify-center transition-all duration-200"
+            className="w-10 h-10 rounded-lg bg-transparent hover:bg-white/5 border border-transparent hover:border-white/10 flex items-center justify-center transition-all duration-200"
             aria-label="Logout"
           >
             <LogOut className="w-5 h-5 text-red-400/80 hover:text-red-400 transition-colors" />

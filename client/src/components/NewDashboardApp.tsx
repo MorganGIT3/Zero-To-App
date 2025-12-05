@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { IosDock } from './IosDock';
-import { BentoCard, BentoGrid, BookCallAnimation, DiscordAnimation, AIAssistantAnimation, FormationAnimation, ResourcesAnimation } from './BentoGrid';
+import { BentoCard, BentoGrid } from './BentoGrid';
 
 interface NewDashboardAppProps {
   onLogout?: () => void;
@@ -214,9 +214,7 @@ export function NewDashboardApp({ onLogout }: NewDashboardAppProps) {
                         cta="Réserver"
                         Icon={Target}
                         className="col-span-1 md:col-span-3"
-                        background={
-                          <div className="absolute inset-0 bg-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        }
+                        background={<div />}
                         onClick={() => setCurrentView('/book-call')}
                       />
                       <BentoCard
@@ -225,9 +223,7 @@ export function NewDashboardApp({ onLogout }: NewDashboardAppProps) {
                         cta="Rejoindre"
                         Icon={MessageCircle}
                         className="col-span-1"
-                        background={
-                          <div className="absolute inset-0 bg-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        }
+                        background={<div />}
                         onClick={() => setCurrentView('/discord')}
                       />
                       <BentoCard
@@ -236,9 +232,7 @@ export function NewDashboardApp({ onLogout }: NewDashboardAppProps) {
                         cta="Accéder"
                         Icon={BrainCog}
                         className="col-span-1 md:col-span-2"
-                        background={
-                          <div className="absolute inset-0 bg-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        }
+                        background={<div />}
                         onClick={() => setCurrentView('/ai-assistant')}
                       />
                       <BentoCard
@@ -247,9 +241,7 @@ export function NewDashboardApp({ onLogout }: NewDashboardAppProps) {
                         cta="Accéder"
                         Icon={Shield}
                         className="col-span-1"
-                        background={
-                          <div className="absolute inset-0 bg-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        }
+                        background={<div />}
                         href="https://alive-buffer-ca8.notion.site/SmartApp-Academy-Cr-e-lance-et-vends-ton-application-IA-no-code-des-entreprises-en-30-jours-86dc953a59a14aceae127c06e675a098"
                       />
                       <BentoCard
@@ -258,9 +250,7 @@ export function NewDashboardApp({ onLogout }: NewDashboardAppProps) {
                         cta="Accéder"
                         Icon={Image}
                         className="col-span-1"
-                        background={
-                          <div className="absolute inset-0 bg-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        }
+                        background={<div />}
                         onClick={() => setCurrentView('/resources')}
                       />
                     </BentoGrid>

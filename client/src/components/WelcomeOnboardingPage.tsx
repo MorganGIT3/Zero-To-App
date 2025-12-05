@@ -13,9 +13,11 @@ interface WelcomeOnboardingPageProps {
 
 export function WelcomeOnboardingPage({ onContinue }: WelcomeOnboardingPageProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const loaderCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const { playDramaticSound } = useDramaticSound();
   const [userFirstName, setUserFirstName] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(true);
+  const [showLoader, setShowLoader] = useState(false);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
 
@@ -180,11 +182,16 @@ export function WelcomeOnboardingPage({ onContinue }: WelcomeOnboardingPageProps
   const handleContinue = async () => {
     if (!isMounted) return;
     playDramaticSound();
+    // Afficher le loader
+    setShowLoader(true);
     // Marquer l'onboarding comme complété
     await markOnboardingComplete();
-    if (isMounted) {
-      onContinue();
-    }
+    // Attendre 3 secondes pour l'animation, puis rediriger
+    setTimeout(() => {
+      if (isMounted) {
+        onContinue();
+      }
+    }, 3000);
   };
 
   const markOnboardingComplete = async () => {
@@ -394,6 +401,126 @@ export function WelcomeOnboardingPage({ onContinue }: WelcomeOnboardingPageProps
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+/* Loader styles */
+.loader-wrapper {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  --bg: #0a0a0a;
+  --fg: #fafafa;
+  --muted: #a1a1aa;
+  --border: #27272a;
+  --accent: #e5e7eb;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Hubot Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+}
+
+.loader-particleCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: screen;
+  opacity: .6;
+}
+
+.loader-accent-lines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.loader-accent-lines .hline {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border), transparent);
+}
+
+.loader-accent-lines .vline {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--border), transparent);
+}
+
+.loader-text {
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--fg);
+  margin-bottom: 48px;
+  text-align: center;
+}
+
+.loader-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+}
+
+.gegga {
+  width: 0;
+}
+
+.snurra {
+  filter: url(#gegga);
+}
+
+.stopp1 {
+  stop-color: hsl(263, 93%, 56%);
+}
+
+.stopp2 {
+  stop-color: hsl(306, 100%, 57%);
+}
+
+.halvan {
+  animation: Snurra1 10s infinite linear;
+  stroke-dasharray: 180 800;
+  fill: none;
+  stroke: url(#gradient);
+  stroke-width: 23;
+  stroke-linecap: round;
+}
+
+.strecken {
+  animation: Snurra1 3s infinite linear;
+  stroke-dasharray: 26 54;
+  fill: none;
+  stroke: url(#gradient);
+  stroke-width: 23;
+  stroke-linecap: round;
+}
+
+.skugga {
+  filter: blur(5px);
+  opacity: 0.3;
+  position: absolute;
+  transform: translate(3px, 3px);
+}
+
+@keyframes Snurra1 {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -403px;
+  }
+}
       `}</style>
 
       {/* Header */}
@@ -483,6 +610,62 @@ export function WelcomeOnboardingPage({ onContinue }: WelcomeOnboardingPageProps
           By TM
         </motion.div>
       </motion.section>
+
+      {/* Loader overlay */}
+      {showLoader && (
+        <motion.div
+          className="loader-wrapper"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {/* Particles Canvas */}
+          <canvas ref={loaderCanvasRef} className="loader-particleCanvas" />
+
+          {/* Accent Lines */}
+          <div className="loader-accent-lines">
+            <div className="hline" />
+            <div className="vline" />
+          </div>
+
+          <motion.p
+            className="loader-text"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            style={{ position: 'relative', zIndex: 10 }}
+          >
+            Vous allez être redirigé
+          </motion.p>
+          <div className="loader-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', zIndex: 10 }}>
+            <svg className="gegga">
+              <defs>
+                <filter id="gegga">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation={7} result="blur" />
+                  <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -10" result="inreGegga" />
+                  <feComposite in="SourceGraphic" in2="inreGegga" operator="atop" />
+                </filter>
+              </defs>
+            </svg>
+            <svg className="snurra" width={200} height={200} viewBox="0 0 200 200">
+              <defs>
+                <linearGradient id="linjärGradient">
+                  <stop className="stopp1" offset={0} />
+                  <stop className="stopp2" offset={1} />
+                </linearGradient>
+                <linearGradient y2={160} x2={160} y1={40} x1={40} gradientUnits="userSpaceOnUse" id="gradient" xlinkHref="#linjärGradient" />
+              </defs>
+              <path className="halvan" d="m 164,100 c 0,-35.346224 -28.65378,-64 -64,-64 -35.346224,0 -64,28.653776 -64,64 0,35.34622 28.653776,64 64,64 35.34622,0 64,-26.21502 64,-64 0,-37.784981 -26.92058,-64 -64,-64 -37.079421,0 -65.267479,26.922736 -64,64 1.267479,37.07726 26.703171,65.05317 64,64 37.29683,-1.05317 64,-64 64,-64" />
+              <circle className="strecken" cx={100} cy={100} r={64} />
+            </svg>
+            <svg className="skugga" width={200} height={200} viewBox="0 0 200 200">
+              <path className="halvan" d="m 164,100 c 0,-35.346224 -28.65378,-64 -64,-64 -35.346224,0 -64,28.653776 -64,64 0,35.34622 28.653776,64 64,64 35.34622,0 64,-26.21502 64,-64 0,-37.784981 -26.92058,-64 -64,-64 -37.079421,0 -65.267479,26.922736 -64,64 1.267479,37.07726 26.703171,65.05317 64,64 37.29683,-1.05317 64,-64 64,-64" />
+              <circle className="strecken" cx={100} cy={100} r={64} />
+            </svg>
+          </div>
+        </motion.div>
+      )}
     </section>
   );
 }

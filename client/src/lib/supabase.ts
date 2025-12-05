@@ -1061,6 +1061,120 @@ export const recordCalComBooking = async (bookingData: {
   }
 }
 
+// Synchroniser les bookings Cal.com via API
+export const syncCalComBookings = async (): Promise<{
+  success: boolean
+  message: string
+  synced: number
+}> => {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error('Utilisateur non connecté')
+    }
+
+    if (!user.email) {
+      throw new Error('Email utilisateur non disponible')
+    }
+
+    const CAL_API_KEY = 'cal_live_cb7eee1f2fd61ca73b6e09755eaf2ee3'
+    const CAL_API_URL = 'https://api.cal.com/v1/bookings'
+
+    // Récupérer les bookings des 30 derniers jours
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const startDate = thirtyDaysAgo.toISOString().split('T')[0] // Format YYYY-MM-DD
+
+    const response = await fetch(
+      `${CAL_API_URL}?startDate=${startDate}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${CAL_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Erreur API Cal.com:', errorText)
+      throw new Error(`Erreur API Cal.com: ${response.status} ${response.statusText}`)
+    }
+
+    const bookingsData = await response.json()
+    // L'API Cal.com peut retourner les bookings dans différents formats
+    const bookings = bookingsData.bookings || bookingsData.data || bookingsData || []
+
+    let syncedCount = 0
+
+    // Filtrer les bookings pour cet utilisateur
+    const userBookings = bookings.filter((booking: any) => {
+      const attendeeEmail = booking.attendees?.[0]?.email?.toLowerCase()
+      return attendeeEmail === user.email?.toLowerCase()
+    })
+
+    // Pour chaque booking, vérifier s'il existe déjà et décrémenter si nécessaire
+    for (const booking of userBookings) {
+      const bookingId = booking.uid
+      const attendeeEmail = booking.attendees?.[0]?.email
+      const attendeeName = booking.attendees?.[0]?.name
+      const startTime = booking.startTime
+      const eventType = booking.eventType?.title || booking.title
+      const status = booking.status || 'scheduled'
+
+      // Vérifier si le booking existe déjà
+      const { data: existingBooking } = await supabase
+        .from('calcom_bookings')
+        .select('id, user_id')
+        .eq('booking_id', bookingId)
+        .single()
+
+      if (!existingBooking) {
+        // Enregistrer le nouveau booking
+        const { error: insertError } = await supabase
+          .from('calcom_bookings')
+          .insert({
+            user_id: user.id,
+            booking_id: bookingId,
+            email: attendeeEmail,
+            name: attendeeName,
+            booking_date: startTime,
+            event_type: eventType,
+            status: status
+          })
+
+        if (!insertError) {
+          // Décrémenter les appels si le booking est récent (pas déjà compté)
+          const bookingDate = new Date(startTime)
+          const now = new Date()
+          const daysDiff = (now.getTime() - bookingDate.getTime()) / (1000 * 60 * 60 * 24)
+
+          // Si le booking est dans les 7 derniers jours, décrémenter
+          if (daysDiff <= 7 && status !== 'cancelled') {
+            await useCall(bookingId)
+          }
+
+          syncedCount++
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `${syncedCount} booking(s) synchronisé(s)`,
+      synced: syncedCount
+    }
+  } catch (error) {
+    console.error('Erreur dans syncCalComBookings:', error)
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erreur lors de la synchronisation',
+      synced: 0
+    }
+  }
+}
+
 // ===== FONCTIONS CHATBOT IA =====
 
 // Interface pour les conversations IA

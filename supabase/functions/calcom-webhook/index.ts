@@ -67,42 +67,82 @@ serve(async (req) => {
 
       console.log(`Booking créé pour: ${attendeeEmail}`)
 
-      // Trouver l'utilisateur correspondant à cet email
-      const { data: userData, error: userError } = await supabaseClient
-        .from('auth.users')
-        .select('id')
+      // Trouver l'utilisateur correspondant à cet email via user_profiles
+      const { data: profileData, error: profileError } = await supabaseClient
+        .from('user_profiles')
+        .select('user_id, email')
         .eq('email', attendeeEmail.toLowerCase())
         .single()
 
-      if (userError || !userData) {
-        console.error('Utilisateur non trouvé pour l\'email:', attendeeEmail)
-        
-        // Enregistrer quand même le booking sans user_id
-        await supabaseClient
-          .from('calcom_bookings')
-          .insert({
-            booking_id: uid,
-            email: attendeeEmail,
-            name: attendeeName,
-            booking_date: startTime,
-            event_type: eventType?.title || title,
-            status: status || 'scheduled'
-          })
+      let userId: string | null = null
 
+      if (profileError || !profileData) {
+        console.error('Profil utilisateur non trouvé pour l\'email:', attendeeEmail, profileError)
+        
+        // Essayer de trouver via auth.users avec l'API admin
+        // Le client Supabase avec SERVICE_ROLE_KEY a accès à auth.admin
+        try {
+          const { data: authUserData, error: authError } = await supabaseClient.auth.admin.listUsers()
+          
+          if (!authError && authUserData?.users) {
+            const matchingUser = authUserData.users.find(
+              (u: any) => u.email?.toLowerCase() === attendeeEmail.toLowerCase()
+            )
+            
+            if (matchingUser) {
+              userId = matchingUser.id
+              console.log('Utilisateur trouvé via auth.admin.listUsers:', userId)
+            }
+          }
+        } catch (adminError) {
+          console.error('Erreur lors de la recherche via auth.admin:', adminError)
+        }
+        
+        if (!userId) {
+          console.error('Utilisateur non trouvé pour l\'email:', attendeeEmail)
+          
+          // Enregistrer quand même le booking sans user_id
+          await supabaseClient
+            .from('calcom_bookings')
+            .insert({
+              booking_id: uid,
+              email: attendeeEmail,
+              name: attendeeName,
+              booking_date: startTime,
+              event_type: eventType?.title || title,
+              status: status || 'scheduled'
+            })
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: 'Booking enregistré mais utilisateur non trouvé',
+              warning: 'L\'email ne correspond à aucun compte ZeroToApp'
+            }),
+            { 
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+      } else {
+        userId = profileData.user_id
+        console.log('Utilisateur trouvé via user_profiles:', userId)
+      }
+
+      if (!userId) {
+        console.error('Impossible de déterminer le user_id pour:', attendeeEmail)
         return new Response(
           JSON.stringify({ 
-            success: true, 
-            message: 'Booking enregistré mais utilisateur non trouvé',
-            warning: 'L\'email ne correspond à aucun compte ZeroToApp'
+            success: false, 
+            error: 'Impossible de trouver l\'utilisateur'
           }),
           { 
-            status: 200,
+            status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
       }
-
-      const userId = userData.id
 
       // Enregistrer le booking dans la base de données
       const { error: insertError } = await supabaseClient

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ open, onOpenChange, onAuthSuccess, onSignupSuccess, defaultTab = "login" }: AuthModalProps) {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -55,6 +57,7 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess, onSignupSuccess, 
       
       if (error) {
         setError("Email ou mot de passe incorrect");
+        setIsLoading(false);
         return;
       }
 
@@ -62,7 +65,30 @@ export function AuthModal({ open, onOpenChange, onAuthSuccess, onSignupSuccess, 
         console.log('Connexion réussie:', data.user);
         // Marquer l'utilisateur comme connecté pour la reconnaissance future
         markUserAsLoggedIn(data.user.email || loginData.email);
-        // Pour la connexion, toujours aller au dashboard (l'onboarding ne s'affiche que pour les nouveaux comptes)
+        
+        // Vérifier le statut d'onboarding pour rediriger vers welcome-onboarding si nécessaire
+        try {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('onboarding_completed')
+            .eq('user_id', data.user.id)
+            .single();
+
+          // Si pas de profil ou onboarding non complété, rediriger vers welcome-onboarding
+          if (!profile || !profile.onboarding_completed) {
+            onOpenChange(false);
+            navigate('/welcome-onboarding');
+            return;
+          }
+        } catch (profileError) {
+          console.log('Profil non trouvé ou erreur, redirection vers welcome-onboarding:', profileError);
+          // En cas d'erreur, rediriger vers welcome-onboarding pour les nouveaux comptes
+          onOpenChange(false);
+          navigate('/welcome-onboarding');
+          return;
+        }
+
+        // Si l'onboarding est complété, utiliser le callback par défaut
         onAuthSuccess?.();
         onOpenChange(false);
       }

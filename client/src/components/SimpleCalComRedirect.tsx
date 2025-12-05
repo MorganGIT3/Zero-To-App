@@ -74,7 +74,7 @@ export function SimpleCalComRedirect() {
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center">
       
       {/* Contenu principal */}
-      <div className="relative z-10 flex items-center justify-center w-full p-8">
+      <div className="relative z-10 flex items-center justify-center w-full p-8 pb-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -115,17 +115,40 @@ export function SimpleCalComRedirect() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-lg text-white/60 mb-12"
+            className="text-lg text-white/60 mb-8"
           >
             Un moment privilégié pour échanger et avancer ensemble
           </motion.p>
+
+          {/* Affichage du nombre d'appels restants */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="mb-6 flex justify-center"
+          >
+            <div className="backdrop-blur-2xl bg-white/[0.05] border border-white/[0.10] rounded-xl px-6 py-3 flex items-center gap-3 shadow-lg">
+              <Phone className="h-5 w-5 text-[#a78bfa]" />
+              {isLoading ? (
+                <span className="text-white/60 text-sm">Chargement...</span>
+              ) : (
+                <span className="text-white/90 font-medium text-sm">
+                  Il vous reste{' '}
+                  <span className="text-[#a78bfa] font-bold text-base">
+                    {callLimits?.calls_remaining ?? 0}
+                  </span>{' '}
+                  appel{callLimits?.calls_remaining !== 1 ? 's' : ''} cette semaine
+                </span>
+              )}
+            </div>
+          </motion.div>
 
           {/* Bouton principal moderne */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.5, type: "spring" }}
-            className="flex justify-center"
+            className="flex justify-center mt-4"
           >
             <ShinyButton
               onClick={handleButtonClick}

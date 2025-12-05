@@ -4,12 +4,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useDramaticSound } from '@/hooks/useDramaticSound';
 import { supabase, getCurrentUser } from '@/lib/supabase';
 import { ShinyButton } from './ShinyButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import './auth-card.css';
 
 gsap.registerPlugin(SplitText, useGSAP);
 
@@ -27,8 +29,10 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
   const [discordCodeCopied, setDiscordCodeCopied] = useState(false);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
+  const splitInstanceRef = useRef<SplitText | null>(null);
 
   const discordCode = "REJOINS_DISCORD_MAINTENANT"; // Code Discord d'invitation
+  const discordInviteUrl = "https://discord.gg/YOUR_INVITE_CODE"; // Remplacez par votre vrai lien Discord
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -119,6 +123,20 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
     loadUserFirstName();
   }, []);
 
+  // Nettoyer SplitText lors du démontage
+  useEffect(() => {
+    return () => {
+      if (splitInstanceRef.current) {
+        try {
+          splitInstanceRef.current.revert();
+        } catch (e) {
+          // Ignorer les erreurs de nettoyage
+        }
+        splitInstanceRef.current = null;
+      }
+    };
+  }, []);
+
   const loadUserFirstName = async () => {
     try {
       const user = await getCurrentUser();
@@ -148,35 +166,66 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
   useGSAP(() => {
     if (!titleRef.current) return;
 
-    document.fonts.ready.then(() => {
-      const split = new SplitText(titleRef.current!, {
-        type: 'lines',
-        wordsClass: 'lines',
-      });
+    // Nettoyer l'instance précédente de SplitText
+    if (splitInstanceRef.current) {
+      try {
+        splitInstanceRef.current.revert();
+      } catch (e) {
+        // Ignorer les erreurs de nettoyage
+      }
+      splitInstanceRef.current = null;
+    }
 
-      gsap.set(split.lines, {
-        filter: 'blur(16px)',
-        yPercent: 30,
-        autoAlpha: 0,
-        scale: 1.06,
-        transformOrigin: '50% 100%',
-      });
+    // Attendre que les polices soient chargées et que React ait fini de rendre
+    const timer = setTimeout(() => {
+      if (!titleRef.current) return;
 
-      gsap.to(split.lines, {
-        filter: 'blur(0px)',
-        yPercent: 0,
-        autoAlpha: 1,
-        scale: 1,
-        duration: 0.9,
-        stagger: 0.15,
-        ease: 'power3.out',
-        delay: 0.5,
-      });
-    });
-  }, { scope: sectionRef, dependencies: [currentStep] });
+      try {
+        const split = new SplitText(titleRef.current, {
+          type: 'lines',
+          wordsClass: 'lines',
+        });
+
+        splitInstanceRef.current = split;
+
+        gsap.set(split.lines, {
+          filter: 'blur(16px)',
+          yPercent: 30,
+          autoAlpha: 0,
+          scale: 1.06,
+          transformOrigin: '50% 100%',
+        });
+
+        gsap.to(split.lines, {
+          filter: 'blur(0px)',
+          yPercent: 0,
+          autoAlpha: 1,
+          scale: 1,
+          duration: 0.9,
+          stagger: 0.15,
+          ease: 'power3.out',
+          delay: 0.5,
+        });
+      } catch (error) {
+        console.error('Erreur SplitText:', error);
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (splitInstanceRef.current) {
+        try {
+          splitInstanceRef.current.revert();
+        } catch (e) {
+          // Ignorer les erreurs de nettoyage
+        }
+        splitInstanceRef.current = null;
+      }
+    };
+  }, { scope: sectionRef, dependencies: [currentStep, userFirstName] });
 
   const handleContinue = () => {
-    if (currentStep < features.length - 1) {
+    if (currentStep < features.length) {
       playDramaticSound();
       setCurrentStep(currentStep + 1);
     } else {
@@ -192,6 +241,19 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
     await markFirstOnboardingComplete();
     // Rediriger vers la page de bienvenue (welcome-onboarding)
     navigate('/welcome-onboarding');
+  };
+
+  const handleGoBack = () => {
+    if (currentStep > 0) {
+      playDramaticSound();
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleGoBackFromModal = () => {
+    setShowDiscordModal(false);
+    // Revenir à la dernière étape de l'onboarding
+    setCurrentStep(features.length);
   };
 
   const markFirstOnboardingComplete = async () => {
@@ -219,26 +281,30 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
     setTimeout(() => setDiscordCodeCopied(false), 2000);
   };
 
+  const handleJoinDiscord = () => {
+    window.open(discordInviteUrl, "_blank", "noopener,noreferrer");
+  };
+
   const features = [
     {
       title: "Accompagnement personnalisé",
-      description: "Des appels par semaine pour t'accompagner au mieux à vendre ta première app no-code à une entreprise",
-      icon: "📞"
+      description: "Deux appels par semaine pour t'accompagner au mieux à vendre ta première app no-code à une entreprise"
+    },
+    {
+      title: "Appels d'accompagnement",
+      description: "Des appels d'accompagnement avec Yohan ou MorganRize pour t'aider à progresser et atteindre tes objectifs"
     },
     {
       title: "Ressources de design",
-      description: "Un accès à des sites de design que tu peux intégrer à ton app pour créer des interfaces professionnelles",
-      icon: "🎨"
+      description: "Un accès à des sites de design que tu peux intégrer à ton app pour créer des interfaces professionnelles"
     },
     {
       title: "Formation complète",
-      description: "Apprends à créer, lancer et vendre ton application IA no-code avec notre méthode éprouvée",
-      icon: "🚀"
+      description: "Apprends à créer, lancer et vendre ton application IA no-code avec notre méthode éprouvée"
     },
     {
-      title: "Communauté active",
-      description: "Rejoins une communauté de créateurs et entrepreneurs pour échanger et progresser ensemble",
-      icon: "👥"
+      title: "Un appel de groupe par semaine",
+      description: "( clique sur \" terminer \" pour rejoindre )"
     }
   ];
 
@@ -267,6 +333,7 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
   background: var(--bg);
   color: var(--fg);
   font-family: 'Hubot Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  isolation: isolate;
 }
 
 /* header */
@@ -302,6 +369,10 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
 .hero > div {
   pointer-events: auto;
   max-width: 800px;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 .kicker {
   font-size: 12px;
@@ -317,6 +388,11 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
   margin: 0;
   color: var(--fg);
   text-shadow: none;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
 }
 .title .gradient-text {
   background: linear-gradient(to right, hsl(263, 93%, 56%), hsl(284, 100%, 84%), hsl(306, 100%, 57%));
@@ -328,6 +404,10 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
   margin-top: 18px;
   font-size: clamp(14px, 2.2vw, 18px);
   color: var(--muted);
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Feature card */
@@ -339,11 +419,10 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
   background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(10px);
   text-align: left;
-}
-.feature-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  display: block;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 .feature-title {
   font-size: 24px;
@@ -361,6 +440,16 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
 .step-indicator {
   display: flex;
   gap: 8px;
+  justify-content: center;
+  margin-top: 32px;
+  min-height: 20px;
+}
+
+/* Conteneur du bouton avec hauteur fixe */
+.button-container {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
   justify-content: center;
   margin-top: 32px;
 }
@@ -462,36 +551,32 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
 .discord-code-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   padding: 16px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   margin-top: 16px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(10px);
+  word-break: break-all;
 }
 .discord-code {
   font-family: monospace;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--fg);
-  flex: 1;
   letter-spacing: 2px;
+  text-align: center;
 }
-.copy-button {
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--fg);
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
+
+/* Isoler la modal Discord du flou GSAP */
+[data-radix-portal] {
+  filter: none !important;
+  isolation: isolate;
 }
-.copy-button:hover {
-  background: rgba(255, 255, 255, 0.15);
+[data-radix-portal] * {
+  filter: none !important;
 }
       `}</style>
 
@@ -518,90 +603,154 @@ export function WelcomeOnboarding({ onContinue }: WelcomeOnboardingProps) {
       {/* Hero */}
       <main className="hero">
         <div>
-          <div className="kicker">
-            {currentStep === 0 ? "Bienvenue" : `Étape ${currentStep + 1} sur ${features.length}`}
-          </div>
-          <h1 ref={titleRef} className="title">
-            {currentStep === 0 ? (
-              <>
-                Bienvenue{userFirstName ? `, ${userFirstName}` : ''} !
-                <br />
-                Découvre ce qui t'attend
-              </>
-            ) : (
-              <>
-                {features[currentStep].title}
-              </>
-            )}
-          </h1>
-          <p className="subtitle">
-            {currentStep === 0 
-              ? "Tu vas découvrir toutes les fonctionnalités qui t'aideront à créer et vendre ta première app no-code"
-              : features[currentStep].description
-            }
-          </p>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`kicker-${currentStep}`}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="kicker">
+                {currentStep === 0 ? "Bienvenue" : `Étape ${currentStep} sur ${features.length}`}
+              </div>
+            </motion.div>
+          </AnimatePresence>
 
-          {currentStep > 0 && (
-            <div className="feature-card">
-              <span className="feature-icon">{features[currentStep].icon}</span>
-              <h2 className="feature-title">{features[currentStep].title}</h2>
-              <p className="feature-description">{features[currentStep].description}</p>
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            <motion.h1
+              key={`title-${currentStep}-${userFirstName}`}
+              ref={titleRef}
+              className="title"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              {currentStep === 0 ? (
+                <>
+                  Bienvenue{userFirstName ? `, ${userFirstName}` : ''} !
+                  <br />
+                  Découvre ce qui t'attend
+                </>
+              ) : (
+                <>
+                  {features[currentStep - 1].title}
+                </>
+              )}
+            </motion.h1>
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`subtitle-${currentStep}`}
+              className="subtitle"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+            >
+              {currentStep === 0 
+                ? "Tu vas découvrir toutes les fonctionnalités qui t'aideront à créer et vendre ta première app no-code"
+                : features[currentStep - 1].description
+              }
+            </motion.p>
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            {currentStep > 0 && (
+              <motion.div
+                key={`feature-card-${currentStep}`}
+                className="feature-card"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+              >
+                <h2 className="feature-title">{features[currentStep - 1].title}</h2>
+                <p className="feature-description">{features[currentStep - 1].description}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Step indicator */}
           <div className="step-indicator">
             {features.map((_, index) => (
               <div 
                 key={index} 
-                className={`step-dot ${index === currentStep ? 'active' : ''}`}
+                className={`step-dot ${index + 1 === currentStep ? 'active' : ''}`}
               />
             ))}
           </div>
 
-          {/* Continue button */}
-          <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center' }}>
-            <ShinyButton onClick={handleContinue}>
-              {currentStep < features.length - 1 ? 'Continuer' : 'Terminer'}
-            </ShinyButton>
-          </div>
+          {/* Navigation buttons */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`buttons-${currentStep}`}
+              className="button-container"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+              style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center' }}
+            >
+              {currentStep > 0 && (
+                <button
+                  onClick={handleGoBack}
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 transition-all duration-200 flex items-center justify-center"
+                  aria-label="Retour à l'étape précédente"
+                  style={{ minWidth: '44px', minHeight: '44px' }}
+                >
+                  <ChevronLeft className="w-5 h-5 text-white" />
+                </button>
+              )}
+              <ShinyButton onClick={handleContinue}>
+                {currentStep < features.length ? 'Continuer' : 'Terminer'}
+              </ShinyButton>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
 
       {/* Discord Modal */}
       <Dialog open={showDiscordModal} onOpenChange={setShowDiscordModal}>
-        <DialogContent className="sm:max-w-md bg-[#0a0a0a] border-[#27272a] text-white">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold text-white">
-              Rejoins le Discord dès maintenant !
-            </DialogTitle>
-            <DialogDescription className="text-[#a1a1aa] mt-2">
-              Les appels de groupe sont obligatoires pour progresser ensemble. Voici ton code d'invitation :
-            </DialogDescription>
-          </DialogHeader>
-          <div className="discord-code-container">
-            <span className="discord-code">{discordCode}</span>
-            <button 
-              onClick={copyDiscordCode}
-              className="copy-button"
-            >
-              {discordCodeCopied ? (
-                <>
-                  <Check size={16} />
-                  Copié !
-                </>
-              ) : (
-                <>
-                  <Copy size={16} />
-                  Copier
-                </>
-              )}
-            </button>
-          </div>
-          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-            <ShinyButton onClick={handleDiscordModalClose}>
-              J'ai rejoint le Discord
-            </ShinyButton>
+        <DialogContent 
+          className="sm:max-w-md p-6 border-0 overflow-visible rounded-3xl z-[200] bg-transparent"
+          style={{ 
+            zIndex: 200,
+            filter: 'none',
+            willChange: 'auto',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}
+        >
+          <div className="relative w-full">
+            {/* Content */}
+            <div className="relative z-10">
+              <div className="auth-card" style={{ overflow: 'visible' }}>
+                <div className="card__border"></div>
+                <DialogHeader className="pb-4 text-center">
+                  <DialogTitle className="text-2xl font-bold text-white">
+                    Rejoins le <span className="text-[#a78bfa] drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]">Discord</span> dès maintenant !
+                  </DialogTitle>
+                  <DialogDescription className="text-[#a1a1aa] mt-2 text-sm">
+                    Les appels de groupe sont obligatoires pour progresser ensemble, même en plus des appels personnalisés.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <hr className="line" />
+                
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <ShinyButton onClick={handleJoinDiscord}>
+                    Rejoindre le Discord
+                  </ShinyButton>
+                  
+                  <ShinyButton onClick={handleDiscordModalClose}>
+                    J'ai rejoint le Discord
+                  </ShinyButton>
+                </div>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

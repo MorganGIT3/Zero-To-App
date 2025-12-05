@@ -2,8 +2,9 @@
 
 import * as React from "react"
 import { useState } from "react"
-import { Calendar, Clock, Users, CheckCircle } from "lucide-react"
+import { Calendar, Clock, Users, CheckCircle, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useCallLimits } from "@/hooks/useCallLimits"
 
 // Types TypeScript pour Cal.com
 declare global {
@@ -214,6 +215,7 @@ const CalComIframeWidget = () => {
 export function CalComBookingPage() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [useIframe, setUseIframe] = React.useState(false)
+  const { callsRemaining, isLoading: isLoadingCalls, refresh: refreshCalls } = useCallLimits()
 
   // Simulation du chargement initial
   React.useEffect(() => {
@@ -243,6 +245,20 @@ export function CalComBookingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
+        {/* Indicateur de calls restants */}
+        <div className="flex justify-end mb-4">
+          <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-4 py-2 flex items-center gap-2 shadow-md">
+            <Phone className="h-4 w-4 text-blue-600" />
+            {isLoadingCalls ? (
+              <span className="text-gray-600 text-sm">Chargement...</span>
+            ) : (
+              <span className="text-gray-900 font-medium text-sm">
+                Il vous reste {callsRemaining !== null ? callsRemaining : 0} call{callsRemaining !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        </div>
+
         {/* Header */}
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">

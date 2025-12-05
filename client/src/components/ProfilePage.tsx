@@ -11,6 +11,8 @@ interface UserProfile {
   full_name?: string;
   created_at: string;
   last_sign_in_at?: string;
+  accompaniment_start_date?: string | null;
+  accompaniment_end_date?: string | null;
 }
 
 export function ProfilePage({ onLogout }: { onLogout?: () => void }) {
@@ -26,12 +28,21 @@ export function ProfilePage({ onLogout }: { onLogout?: () => void }) {
     try {
       const user = await getCurrentUser();
       if (user) {
+        // Charger les données depuis user_profiles pour avoir les dates d'accompagnement
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('accompaniment_start_date, accompaniment_end_date')
+          .eq('user_id', user.id)
+          .single();
+
         setUserProfile({
           id: user.id,
           email: user.email || '',
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur',
           created_at: user.created_at,
-          last_sign_in_at: user.last_sign_in_at
+          last_sign_in_at: user.last_sign_in_at,
+          accompaniment_start_date: profile?.accompaniment_start_date || null,
+          accompaniment_end_date: profile?.accompaniment_end_date || null
         });
       }
     } catch (error) {
@@ -122,23 +133,69 @@ export function ProfilePage({ onLogout }: { onLogout?: () => void }) {
               <h2 className="text-sm font-semibold text-white">Accompagnement</h2>
             </div>
             
-            <div className="space-y-2">
+            {userProfile?.accompaniment_start_date && userProfile?.accompaniment_end_date ? (
+              <div className="space-y-2">
+                <div className="flex items-start gap-2 p-3 bg-white/[0.02] border border-white/[0.05] rounded-lg">
+                  <Calendar className="h-4 w-4 text-[#a78bfa] mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-white/50 text-xs mb-0.5">Période d'accompagnement</p>
+                    <p className="text-white text-sm font-medium">
+                      Du {new Date(userProfile.accompaniment_start_date).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric'
+                      })} au {new Date(userProfile.accompaniment_end_date).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-2 p-3 bg-white/[0.02] border border-white/[0.05] rounded-lg">
+                  <Shield className="h-4 w-4 text-[#a78bfa] mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-white/50 text-xs mb-0.5">Statut</p>
+                    {(() => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const startDate = new Date(userProfile.accompaniment_start_date);
+                      const endDate = new Date(userProfile.accompaniment_end_date);
+                      
+                      let status = '';
+                      let statusColor = '';
+                      
+                      if (today < startDate) {
+                        status = 'En attente';
+                        statusColor = 'text-gray-400';
+                      } else if (today >= startDate && today <= endDate) {
+                        status = 'En cours';
+                        statusColor = 'text-green-400';
+                      } else {
+                        status = 'Terminé';
+                        statusColor = 'text-blue-400';
+                      }
+                      
+                      return (
+                        <p className={`text-sm font-medium ${statusColor}`}>
+                          {status}
+                        </p>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            ) : (
               <div className="flex items-start gap-2 p-3 bg-white/[0.02] border border-white/[0.05] rounded-lg">
                 <Calendar className="h-4 w-4 text-[#a78bfa] mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-white/50 text-xs mb-0.5">Date de début</p>
-                  <p className="text-white text-sm font-medium">Non définie</p>
+                  <p className="text-white/50 text-xs mb-0.5">Dates d'accompagnement</p>
+                  <p className="text-white text-sm font-medium">Non définies</p>
+                  <p className="text-white/40 text-xs mt-1">Les dates seront définies par votre administrateur</p>
                 </div>
               </div>
-              
-              <div className="flex items-start gap-2 p-3 bg-white/[0.02] border border-white/[0.05] rounded-lg">
-                <Calendar className="h-4 w-4 text-[#a78bfa] mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-white/50 text-xs mb-0.5">Date de fin</p>
-                  <p className="text-white text-sm font-medium">Non définie</p>
-                </div>
-              </div>
-            </div>
+            )}
           </motion.div>
         </div>
 
