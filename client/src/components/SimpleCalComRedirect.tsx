@@ -62,7 +62,7 @@ export function SimpleCalComRedirect() {
   const handleConfirm = () => {
     setIsRedirecting(true)
     // Rediriger vers cal.com avec l'email pré-rempli
-    const calComUrl = `https://cal.com/smartappacademy/1h-d-accompagnement?email=${encodeURIComponent(userEmail)}`
+    const calComUrl = `https://cal.com/zerotoapp/1h-d-accompagnement?email=${encodeURIComponent(userEmail)}`
     window.location.href = calComUrl
   }
 
